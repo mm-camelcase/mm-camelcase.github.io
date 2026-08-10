@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camelcase — Editorial Prototype</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const ACCENT = '#b85c38';
+const BG = '#fafaf8';
+const BG_CHAT = '#ffffff';
+const BORDER = '#e8e6e1';
+const TEXT = '#1a1a1a';
+const TEXT_SECONDARY = '#6b6560';
+
+const SUGGESTED_PROMPTS = [
+  "What's Mark's experience with Kubernetes?",
+  "Is Mark available for contract work?",
+  "Tell me about Mark's security experience",
+  "Upload a job spec for analysis",
+];
+
+const MOCK_RESPONSES = {
+  "What's Mark's experience with Kubernetes?":
+    "I've been working with Kubernetes for several years, most recently focused on **GPU workload optimisation** at an AI startup. I built a cost optimisation system that reduced GPU compute spend by **40%**. I also designed self-service dev environments on K8s for the engineering team.\n\nMy K8s work spans EKS, Helm, custom operators, and cost governance tooling.",
+  "Is Mark available for contract work?":
+    "Yes — I'm open to both contract and permanent roles. I'm based in Ireland and work remotely. I'm particularly interested in roles involving **AI platform engineering**, DevOps for AI/ML workloads, or building **agentic systems**.\n\nBest way to discuss specifics is to reach out directly at mark@camelcase.club.",
+  "Tell me about Mark's security experience":
+    "Security is a core part of my work. I've led **SOC2** and **ISO 27001** compliance automation, building policy-as-code frameworks that turned manual audit processes into automated checks.\n\nAt my current role, I handle information security alongside platform engineering — so I see both sides: building secure infrastructure and proving compliance.",
+  "Upload a job spec for analysis":
+    "## Suitability Analysis\n**Match Score: 85/100**\n\n**Strong alignment:**\n- Kubernetes & container orchestration\n- AWS infrastructure & Terraform\n- CI/CD & platform engineering\n- Security & compliance (SOC2, ISO 27001)\n\n**Gaps to discuss:**\n- No specific experience with GCP (AWS-focused)\n\n**Suggested questions for Mark:**\n- How did you approach GPU cost optimisation at scale?\n- What was your SOC2 compliance automation strategy?",
+  default:
+    "Thanks for your question. I can help with anything about Mark's experience, skills, availability, or how he works. You can also upload a job spec and I'll give you a detailed suitability analysis.\n\nWhat would you like to know?",
+};
+
+function getResponse(msg) {
+  const lower = msg.toLowerCase();
+  if (lower.includes('kubernetes') || lower.includes('k8s')) return MOCK_RESPONSES["What's Mark's experience with Kubernetes?"];
+  if (lower.includes('available') || lower.includes('contract') || lower.includes('hire')) return MOCK_RESPONSES["Is Mark available for contract work?"];
+  if (lower.includes('security') || lower.includes('compliance') || lower.includes('soc2')) return MOCK_RESPONSES["Tell me about Mark's security experience"];
+  if (lower.includes('job spec') || lower.includes('upload') || lower.includes('suitability')) return MOCK_RESPONSES["Upload a job spec for analysis"];
+  return MOCK_RESPONSES.default;
+}
+
+function renderMarkdown(text) {
+  return text.split('\n').map((line, i) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={j} style={{ color: TEXT, fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+    return <div key={i} style={{ minHeight: line === '' ? '0.6em' : 'auto' }}>{parts}</div>;
+  });
+}
+
+function EditorialPrototype() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  const sendMessage = (text) => {
+    const userMsg = text || input;
+    if (!userMsg.trim()) return;
+    setMessages((prev) => [...prev, { role: 'user', content: userMsg }]);
+    setInput('');
+    setIsTyping(true);
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { role: 'agent', content: getResponse(userMsg) }]);
+      setIsTyping(false);
+    }, 1500);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { background: ${BG}; color: ${TEXT}; font-family: 'DM Sans', sans-serif; }
+        ::selection { background: ${ACCENT}; color: white; }
+        @keyframes fadeDot { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+      `}</style>
+
+      <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', maxWidth: '900px', margin: '0 auto', padding: '3rem 2rem' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5rem' }}>
+          <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.1rem', color: TEXT }}>Camelcase</span>
+          <span style={{ fontSize: '0.8rem', color: TEXT_SECONDARY, letterSpacing: '0.05em' }}>Mark Mitchell</span>
+        </header>
+
+        <div style={{ marginBottom: '4rem' }}>
+          <h1 style={{
+            fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+            fontWeight: 400, lineHeight: 1.15, marginBottom: '1.5rem', color: TEXT, maxWidth: '750px',
+          }}>
+            I help startups build more with less — using AI-augmented DevOps and agentic systems.
+          </h1>
+          <div style={{ width: '60px', height: '2px', background: ACCENT, marginBottom: '1.5rem' }} />
+          <p style={{ fontSize: '1.05rem', color: TEXT_SECONDARY, lineHeight: 1.7, maxWidth: '550px' }}>
+            20 years of engineering distilled into a conversation. Ask me anything, or upload a job spec for a suitability analysis.
+          </p>
+        </div>
+
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', minHeight: '400px', maxHeight: '55vh',
+          background: BG_CHAT, border: `1px solid ${BORDER}`, borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {messages.length === 0 && !isTyping && (
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, gap: '2rem' }}>
+                <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.15rem', color: TEXT_SECONDARY, fontStyle: 'italic' }}>
+                  "The best way to evaluate someone is to have a conversation with them."
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {SUGGESTED_PROMPTS.map((prompt, i) => (
+                    <button key={i} onClick={() => sendMessage(prompt)} style={{
+                      background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: '20px',
+                      padding: '0.5rem 1.15rem', color: TEXT_SECONDARY, fontSize: '0.85rem',
+                      cursor: 'pointer', transition: 'all 0.25s', fontFamily: "'DM Sans', sans-serif",
+                    }}
+                    onMouseEnter={(e) => { e.target.style.borderColor = ACCENT; e.target.style.color = ACCENT; }}
+                    onMouseLeave={(e) => { e.target.style.borderColor = BORDER; e.target.style.color = TEXT_SECONDARY; }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {messages.map((msg, i) => (
+              <div key={i} style={{ maxWidth: '85%', alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                {msg.role === 'user' ? (
+                  <div style={{
+                    background: '#f0efec', borderRadius: '16px 16px 4px 16px',
+                    padding: '0.85rem 1.15rem', fontSize: '0.95rem', lineHeight: 1.6,
+                  }}>
+                    {msg.content}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.95rem', lineHeight: 1.75, color: TEXT_SECONDARY }}>
+                    {renderMarkdown(msg.content)}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {isTyping && (
+              <div style={{ display: 'flex', gap: '4px', padding: '0.5rem 0' }}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} style={{
+                    width: 6, height: 6, borderRadius: '50%', background: ACCENT,
+                    animation: `fadeDot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                  }} />
+                ))}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div style={{ padding: '1rem 1.5rem', borderTop: `1px solid ${BORDER}`, display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <input
+              type="text" value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about experience, skills, or availability..."
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                color: TEXT, fontSize: '0.95rem', fontFamily: "'DM Sans', sans-serif",
+              }}
+              aria-label="Chat input"
+            />
+            <label style={{
+              padding: '0.4rem 0.75rem', border: `1px solid ${BORDER}`, borderRadius: '6px',
+              fontSize: '0.8rem', color: TEXT_SECONDARY, cursor: 'pointer',
+            }}>
+              Upload
+              <input type="file" accept=".md,.txt,.pdf" style={{ display: 'none' }} aria-label="Upload job spec" />
+            </label>
+            <button onClick={() => sendMessage()} style={{
+              background: TEXT, border: 'none', borderRadius: '6px',
+              padding: '0.5rem 1.25rem', color: BG, fontSize: '0.85rem',
+              fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+            }}>
+              Send
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ maxWidth: '900px', margin: '0 auto', padding: '5rem 2rem' }}>
+        <hr style={{ border: 'none', borderTop: `1px solid ${BORDER}`, marginBottom: '5rem' }} />
+        <div style={{ marginBottom: '5rem' }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', fontWeight: 400, marginBottom: '2.5rem' }}>What I Do</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
+            {[
+              { title: 'AI-Augmented Platform Engineering', desc: 'Kubernetes, Terraform, CI/CD — accelerated with AI at every step.' },
+              { title: 'Agentic AI Systems', desc: 'RAG pipelines, tool use, orchestration frameworks, and evaluation systems.' },
+              { title: 'Cost-Efficient AI Workloads', desc: 'GPU optimisation and cost governance. 40% compute savings delivered.' },
+              { title: 'LLM Observability', desc: 'Langfuse integration, tracing, prompt versioning, cost dashboards.' },
+              { title: 'Dev Productivity', desc: 'AI-augmented workflows that help teams ship faster and with more confidence.' },
+            ].map((item, i) => (
+              <div key={i}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{item.title}</h3>
+                <p style={{ fontSize: '0.9rem', color: TEXT_SECONDARY, lineHeight: 1.6 }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: `1px solid ${BORDER}`, marginBottom: '5rem' }} />
+        <div style={{ marginBottom: '5rem' }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', fontWeight: 400, marginBottom: '2.5rem' }}>Selected Work</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            {[
+              { title: 'Agentic Weather API with MCP', desc: 'A Model Context Protocol server connecting LLMs to real-time weather data — demonstrating tool-use patterns for agentic systems.' },
+              { title: 'GPU Cost Optimisation on K8s', desc: 'Reduced GPU compute spend by 40% through spot instance orchestration, workload scheduling, and custom cost governance tooling.' },
+              { title: 'SOC2 Compliance Automation', desc: 'Replaced manual audit workflows with policy-as-code. Automated evidence collection, continuous monitoring, and audit-ready dashboards.' },
+            ].map((item, i) => (
+              <div key={i} style={{ paddingLeft: '1.5rem', borderLeft: `2px solid ${ACCENT}` }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{item.title}</h3>
+                <p style={{ fontSize: '0.9rem', color: TEXT_SECONDARY, lineHeight: 1.7 }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: `1px solid ${BORDER}`, marginBottom: '5rem' }} />
+        <div style={{ marginBottom: '5rem' }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', fontWeight: 400, marginBottom: '1.5rem' }}>How I Work</h2>
+          <p style={{ fontSize: '1.05rem', lineHeight: 1.85, color: TEXT_SECONDARY, maxWidth: '650px' }}>
+            I use AI tools daily — Claude Code for infrastructure-as-code, code review, diagnostics, and documentation.
+            My workflow is AI-augmented, not AI-dependent. Every pull request is human-reviewed.
+            Every architecture decision is mine. The result: I ship faster while maintaining quality.
+          </p>
+        </div>
+
+        <div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', fontWeight: 400, marginBottom: '1.5rem' }}>Get in Touch</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.95rem' }}>
+            <a href="mailto:mark@camelcase.club" style={{ color: TEXT, textDecoration: 'none', borderBottom: `1px solid ${BORDER}`, paddingBottom: '0.15rem', width: 'fit-content' }}>mark@camelcase.club</a>
+            <a href="https://github.com/mm-camelcase" style={{ color: TEXT, textDecoration: 'none', borderBottom: `1px solid ${BORDER}`, paddingBottom: '0.15rem', width: 'fit-content' }}>GitHub</a>
+            <span style={{ color: ACCENT, fontWeight: 500 }}>Currently available for new engagements</span>
+          </div>
+        </div>
+      </section>
+
+      <footer style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem', borderTop: `1px solid ${BORDER}`, fontSize: '0.8rem', color: TEXT_SECONDARY }}>
+        Camelcase Ltd. — {new Date().getFullYear()}
+      </footer>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(EditorialPrototype));
+  </script>
+</body>
+</html>
